@@ -9,6 +9,15 @@ export type AssignmentStatus = "Active" | "Completed" | "Reassigned";
 export type FollowupType = "Call" | "Email" | "SMS" | "Meeting" | "Other";
 export type FollowupStatus = "Pending" | "Completed" | "Cancelled";
 export type LeadStatus = "New" | "Contacted" | "Qualified" | "Converted" | "Lost";
+export type LeadConversionOption = "Sourcing Deal" | "Opportunity";
+export type LeadSourceOption = 
+  | "Google"
+  | "Facebook"
+  | "Instagram"
+  | "LinkedIn"
+  | "Call Dump"
+  | "Manual"
+  | "Other";
 export type UserRole = "Admin" | "Manager" | "User" | "HeadEngineer" | "StoreManager";
 
 /**
@@ -100,7 +109,10 @@ export interface CallLead {
   lead_phone?: string;
   company_name?: string;
   status: LeadStatus;
-  lead_source: string;
+  lead_source: LeadSourceOption;
+  campaign?: string;
+  conversion_option?: LeadConversionOption;
+  tags?: string[];
   value?: number;
   created_at: Date;
   updated_at: Date;
@@ -201,6 +213,10 @@ export interface CreateLeadForm {
   lead_email?: string;
   lead_phone?: string;
   company_name?: string;
+  lead_source?: LeadSourceOption;
+  campaign?: string;
+  conversion_option?: LeadConversionOption;
+  tags?: string[];
   value?: number;
 }
 

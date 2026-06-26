@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -40,8 +41,10 @@ import {
   Calendar,
   CheckCircle2,
   Loader2,
+  Plus,
+  X,
 } from "lucide-react";
-import type { Call, FollowupType } from "@/types/calls";
+import type { Call, FollowupType, LeadSourceOption, LeadConversionOption } from "@/types/calls";
 
 const followupSchema = z.object({
   followup_type: z.enum(["Call", "Email", "SMS", "Meeting", "Other"]),
@@ -54,6 +57,10 @@ const leadSchema = z.object({
   lead_email: z.string().email().optional().or(z.literal("")),
   lead_phone: z.string().optional(),
   company_name: z.string().optional(),
+  lead_source: z.enum(["Google", "Facebook", "Instagram", "LinkedIn", "Call Dump", "Manual", "Other"]).optional(),
+  campaign: z.string().optional(),
+  conversion_option: z.enum(["Sourcing Deal", "Opportunity"]).optional(),
+  tags: z.array(z.string()).optional(),
   value: z.string().optional(),
 });
 
@@ -80,6 +87,7 @@ export function FollowupAndLeadCreation({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leadCreated, setLeadCreated] = useState(false);
+  const [tagInput, setTagInput] = useState("");
 
   const followupForm = useForm<FollowupFormValues>({
     resolver: zodResolver(followupSchema),
@@ -99,6 +107,10 @@ export function FollowupAndLeadCreation({
       lead_email: call.contact_email || "",
       lead_phone: call.contact_phone || "",
       company_name: "",
+      lead_source: "Call Dump" as const,
+      campaign: "",
+      conversion_option: undefined,
+      tags: [],
       value: "",
     },
   });
@@ -147,6 +159,10 @@ export function FollowupAndLeadCreation({
           lead_email: values.lead_email || undefined,
           lead_phone: values.lead_phone || undefined,
           company_name: values.company_name || undefined,
+          lead_source: values.lead_source,
+          campaign: values.campaign,
+          conversion_option: values.conversion_option,
+          tags: values.tags,
           value: values.value ? parseFloat(values.value) : undefined,
         }),
       });
@@ -168,6 +184,21 @@ export function FollowupAndLeadCreation({
     }
   };
 
+  const handleAddTag = () => {
+    if (tagInput.trim()) {
+      const currentTags = leadForm.getValues("tags") || [];
+      if (!currentTags.includes(tagInput.trim())) {
+        leadForm.setValue("tags", [...currentTags, tagInput.trim()]);
+        setTagInput("");
+      }
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const currentTags = leadForm.getValues("tags") || [];
+    leadForm.setValue("tags", currentTags.filter(tag => tag !== tagToRemove));
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -176,7 +207,7 @@ export function FollowupAndLeadCreation({
           Follow-up & Lead
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Follow-up & Lead Management</DialogTitle>
           <DialogDescription>
@@ -412,6 +443,130 @@ export function FollowupAndLeadCreation({
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={leadForm.control}
+                  name="lead_source"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lead Source</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isSubmitting}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select lead source" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(["Google", "Facebook", "Instagram", "LinkedIn", "Call Dump", "Manual", "Other"] as LeadSourceOption[]).map((source) => (
+                            <SelectItem key={source} value={source}>{source}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={leadForm.control}
+                    name="campaign"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Campaign</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Campaign name"
+                            disabled={isSubmitting}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={leadForm.control}
+                    name="conversion_option"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conversion Option</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          disabled={isSubmitting}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select conversion option" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(["Sourcing Deal", "Opportunity"] as LeadConversionOption[]).map((option) => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={leadForm.control}
+                  name="tags"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(leadForm.watch("tags") || []).map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Add a tag"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddTag();
+                            }
+                          }}
+                          disabled={isSubmitting}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleAddTag}
+                          disabled={isSubmitting || !tagInput.trim()}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <Button
                   type="submit"
